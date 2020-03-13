@@ -172,8 +172,49 @@ Bisa cek di Source Code
 
 ## 2. Shisoppu mantappu! itulah yang selalu dikatakan Kiwa setiap hari karena sekarang dia merasa sudah jago materi sisop. Karena merasa jago, suatu hari Kiwa iseng membuat sebuah program.
 ### 2a. Pertama-tama, Kiwa membuat sebuah folder khusus, di dalamnya dia membuat sebuah program C yang per 30 detik membuat sebuah folder dengan nama timestamp [YYYY-mm-dd_HH:ii:ss].
+```
+if (child_id == 0) {
+        // this is child
+        char arrpath[20] = "/home/afiahana/";
+        char buffer[25];
+
+        time_t rawtime;
+        time(&rawtime);
+        struct tm *info = localtime(&rawtime);
+
+        strftime(buffer, 25, "%d-%m-%G_%H:%M:%S", info);
+        char *foldername = strcat(arrpath, buffer);
+
+        char *argv[] = {"mkdir", "-p", foldername, NULL};
+        execv("/bin/mkdir", argv);
+    }
+```
+Pertama kita fork, lalu di child process kita membuat directory dengan nama directory yaitu date and time saat ini tiap 30 detik (untuk sleep nya bisa dilihat di source code). Lalu kami menggunakan <time.h> untuk mendapatkan waktu saat ini.
 
 ### 2b. Tiap-tiap folder lalu diisi dengan 20 gambar yang di download dari https://picsum.photos/, dimana tiap gambar di download setiap 5 detik. Tiap gambar berbentuk persegi dengan ukuran (t%1000)+100 piksel dimana t adalah detik Epoch Unix. Gambar tersebut diberi nama dengan format timestamp [YYYY- mm-dd_HH:ii:ss].
+```
+else {
+        // this is parent
+        while ((wait(&status)) > 0);
+
+        int i;
+
+        for(i = 0; i < 20; i++){
+            char sftime[25];
+
+            time_t rawtime;
+            time(&rawtime);
+            struct tm *info = localtime(&rawtime);
+
+            strftime(sftime, 25, "%d-%m-%G_%H:%M:%S", info);
+            char *filename = sftime;
+
+            char *argv1[] = {"wget", "https://picsum.photos/200", "-O", filename};
+            execv("/usr/bin/wget", argv1);
+            sleep(5);
+        }
+```
+Untuk download kami taruh di parent process. Setelah itu looping karena ingin mendownload sebanyak 20 foto. Menggunakan wget untuk mendownloadnya.
 
 ### 2c. Agar rapi, setelah sebuah folder telah terisi oleh 20 gambar, folder akan di zip dan folder akan di delete(sehingga hanya menyisakan .zip).
 
