@@ -172,55 +172,109 @@ Bisa cek di Source Code
 
 ## 2. Shisoppu mantappu! itulah yang selalu dikatakan Kiwa setiap hari karena sekarang dia merasa sudah jago materi sisop. Karena merasa jago, suatu hari Kiwa iseng membuat sebuah program.
 ### 2a. Pertama-tama, Kiwa membuat sebuah folder khusus, di dalamnya dia membuat sebuah program C yang per 30 detik membuat sebuah folder dengan nama timestamp [YYYY-mm-dd_HH:ii:ss].
+
 ```
-if (child_id == 0) {
-        // this is child
-        char arrpath[20] = "/home/afiahana/";
-        char buffer[25];
+pid_t cid, cid2, cid3, cid4;
+time_t t1 = time(NULL);
+struct tm* p1 = localtime(&t1);
+strftime(curtime, 30, "%Y-%m-%d_%H:%M:%S", p1);
 
-        time_t rawtime;
-        time(&rawtime);
-        struct tm *info = localtime(&rawtime);
-
-        strftime(buffer, 25, "%d-%m-%G_%H:%M:%S", info);
-        char *foldername = strcat(arrpath, buffer);
-
-        char *argv[] = {"mkdir", "-p", foldername, NULL};
-        execv("/bin/mkdir", argv);
-    }
+cid = fork();
+if(cid < 0) exit(0);
+if(cid == 0)
+{
+    char *ag[] = {"mkdir", curtime, NULL};
+    execv("/bin/mkdir", ag);
+}
+sleep(30); 
 ```
-Pertama kita fork, lalu di child process kita membuat directory dengan nama directory yaitu date and time saat ini tiap 30 detik (untuk sleep nya bisa dilihat di source code). Lalu kami menggunakan <time.h> untuk mendapatkan waktu saat ini.
+Untuk membuat folder dengan timestamp [YYYY-mm-dd_HH:ii:ss] dapat menggunakan fungsi strftime dari C dan menggunakan fork serta exec untuk memanggil command mkdir. Agar program berjalan setiap 30 detik, maka digunakan daemon dan diberi selang 30 detik dengan sleep(30).
 
 ### 2b. Tiap-tiap folder lalu diisi dengan 20 gambar yang di download dari https://picsum.photos/, dimana tiap gambar di download setiap 5 detik. Tiap gambar berbentuk persegi dengan ukuran (t%1000)+100 piksel dimana t adalah detik Epoch Unix. Gambar tersebut diberi nama dengan format timestamp [YYYY- mm-dd_HH:ii:ss].
+
+``` 
+chdir(curtime);
+for(i = 0; i < 20; i++)
+{
+    time_t t2 = time(NULL);
+    struct tm* p2 = localtime(&t2);
+    strftime(curtime2, 30, "%Y-%m-%d_%H:%M:%S", p2);
+    sprintf(link, "https://picsum.photos/%ld", (t2 % 1000) + 100);
+
+    cid3 = fork();
+    if(cid3 < 0) exit(0);
+    if(cid3 == 0)
+    {
+        char *ag[] = {"wget", link, "-O", curtime2, "-o", "/dev/null", NULL};
+        execv("/usr/bin/wget", ag);
+    }
+    sleep(5);
+}
 ```
-else {
-        // this is parent
-        while ((wait(&status)) > 0);
 
-        int i;
-
-        for(i = 0; i < 20; i++){
-            char sftime[25];
-
-            time_t rawtime;
-            time(&rawtime);
-            struct tm *info = localtime(&rawtime);
-
-            strftime(sftime, 25, "%d-%m-%G_%H:%M:%S", info);
-            char *filename = sftime;
-
-            char *argv1[] = {"wget", "https://picsum.photos/200", "-O", filename};
-            execv("/usr/bin/wget", argv1);
-            sleep(5);
-        }
-```
-Untuk download kami taruh di parent process. Setelah itu looping karena ingin mendownload sebanyak 20 foto. Menggunakan wget untuk mendownloadnya.
+Untuk mendownload gambar untuk tiap folder, digunakan fungsi fork dan exec untuk memanggil fungsi wget, dengan format untuk mendapatkan timestamp sama seperti di soal 2a. Sebelum menjalankan perintah tersebut, akan memanggil fungsi chdir(curtime) terlebih dahulu, agar dapat masuk ke folder tersebut. Karena membutuhkan download 20 gambar, maka digunakan loop for dengan iterasi 20 kali. Berikut kodenya:
 
 ### 2c. Agar rapi, setelah sebuah folder telah terisi oleh 20 gambar, folder akan di zip dan folder akan di delete(sehingga hanya menyisakan .zip).
+```
+while(wait(&stat2) > 0);
+chdir("..");
+strcpy(curtime3, curtime);
+strcat(curtime3, ".zip");
+
+cid4 = fork();
+if(cid4 < 0) exit(0);
+if(cid4 == 0)
+{
+    char *ag[] = {"zip", "-r", curtime3, curtime, NULL};
+    execv("/usr/bin/zip", ag);
+}
+while(wait(&stat3) > 0);
+
+char *ag[] = {"rm", "-r", curtime, NULL};
+execv("/bin/rm", ag);
+
+```
+Setelah keluar dari loop (sudah mendownload 20 gambar), maka perlu melakukan zip folder tadi dengan nama yang sama yaitu nama folder tadi (curtime). Untuk mendapatkan nama folder, digunakan fungsi strcpy(curtime3, curtime) yang berarti variable curtime3 akan berisi sama dengan curtime (nama folder), kemudian dilanjutkan dengan fungsi strcat(curtime3, ".zip") agar menambahkan ekstensi .zip. Untuk memanggil fungsi zip, harus menggunakan fork dan exec lagi. Sebelumnya, maka harus berpindah ke direktori parent (keluar), karena akan dilakukan zip, dengan command chdir(".."). Dan kemudian command rm -r agar folder awalnya terhapus.
 
 ### 2d. Karena takut program tersebut lepas kendali, Kiwa ingin program tersebut men- generate sebuah program "killer" yang siap di run(executable) untuk menterminasi semua operasi program tersebut. Setelah di run, program yang menterminasi ini lalu akan mendelete dirinya sendiri.
+```
+FILE* kill;
+kill = fopen("kill.sh", "w");
+fprintf(kill, "#!/bin/bash\nkill %d\nkill %d\necho \'Killed program.\'\nrm \"$0\"", getpid() + 2, getpid() + 3);
+fclose(kill);
+pid_t cid;
+cid = fork();
+if(cid < 0) exit(0);
+if(cid = 0)
+{
+    char *ag[] = {"chmod", "u+x", "kill.sh", NULL};
+    execv("/bin/chmod", ag);
+}
+while(wait(&stat) > 0);
+```
+Program killer yang kami buat dalam bentuk bash, di mana dituliskan dari program C dengan command fopen terlebih dahulu untuk membuat file baru yang akan dituliskan, dengan command w, dan command fprintf untuk menuliskan source code killer. Kemudian memanggil fungsi exec dan fork lagi untuk mengganti hak akses file tersebut menggunakan command chmod u+x kill.sh, yang berarti user dapat mengeksekusi file kill.sh tersebut.
 
 ### 2e. Kiwa menambahkan bahwa program utama bisa dirun dalam dua mode, yaitu MODE_A dan MODE_B. untuk mengaktifkan MODE_A, program harus dijalankan dengan argumen -a. Untuk MODE_B, program harus dijalankan dengan argumen -b. Ketika dijalankan dalam MODE_A, program utama akan langsung menghentikan semua operasinya ketika program killer dijalankan. Untuk MODE_B, ketika program killer dijalankan, program utama akan berhenti tapi membiarkan proses di setiap folder yang masih berjalan sampai selesai(semua folder terisi gambar, terzip lalu di delete).
+```
+int main(int argc, char* argv[])
+{
+    if(argc != 2 || (argv[1][1] != 'a' && argv[1][1] != 'b')) 
+    {
+        printf("Mode hanya ada -a atau -b\n");
+        exit(0);
+    }
+    ...
+    while(1)
+    {
+        ...
+        if(argv[1][1] == 'a') prctl(PR_SET_PDEATHSIG, SIGHUP);
+        ...
+    }
+    ...
+}
+```
+
+Untuk menerima argumen, digunakan parameter di fungsi main, dalam bentuk argc (untuk mengetahui berapa banyak argumen), dan array argv yang berisi argumen yang dipassing. Jika argumen yang diinginkan berupa -a dan -b, artinya huruf a dan b berada pada array argv[1][1] karena di argumen kedua dan karakter kedua (zero indexing). Kemudian untuk membedakan mode a, di mana program langsung berhenti tanpa menyelesaikan pekerjaannya dulu, maka diberi command if di dalam loop pembuatan folder dalam while(1), agar jika mode yang dipassing adalah a, dapat langsung memberikan sinyal hangup dengan SIGHUP dengan bantuan fungsi prctl. 
 
 ## 3. Jaya adalah seorang programmer handal mahasiswa informatika. Suatu hari dia memperoleh tugas yang banyak dan berbeda tetapi harus dikerjakan secara bersamaan (multiprocessing).
 ### 3a. Program buatan jaya harus bisa membuat dua direktori di “/home/[USER]/modul2/”. Direktori yang pertama diberi nama “indomie”, lalu lima detik kemudian membuat direktori yang kedua bernama “sedaap”.
